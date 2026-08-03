@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeliveryGuard recovery console</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="DeliveryGuard home"><b>DG</b><span>DeliveryGuard<small>delivery flight recorder</small></span></a>
+      <div class="live-state"><i></i><span id="gate-label">running proof</span></div>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Webhook reliability / credential-free evidence</p>
+          <h1>Recover the delivery.<br><em>Never hide the failure.</em></h1>
+          <p>Classify transport outcomes, retry only transient failures, suppress duplicates and replay dead letters with the full attempt history intact.</p>
+          <button id="run-proof" type="button">Run reliability proof <span>↗</span></button>
+        </div>
+        <div class="hero-score">
+          <span>proof gate</span><strong id="gate-score">—</strong>
+          <dl>
+            <div><dt>transport attempts</dt><dd id="attempt-total">—</dd></div>
+            <div><dt>duplicate calls</dt><dd id="duplicate-calls">—</dd></div>
+            <div><dt>secret persisted</dt><dd id="secret-state">—</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="recorder" aria-label="delivery lifecycle">
+        <header>
+          <div><span>01 / ACTION TRACE</span><h2>One request, every decision visible</h2></div>
+          <div class="legend"><i class="retry"></i>retryable <i class="success"></i>delivered <i class="terminal"></i>terminal</div>
+        </header>
+        <div id="timeline" class="timeline"></div>
+      </section>
+
+      <section class="proof-grid">
+        <article class="receipt-panel">
+          <header><span>02 / SELECTED RECEIPT</span><b id="receipt-state">—</b></header>
+          <div class="receipt-title"><span id="receipt-index">—</span><h2 id="receipt-title">Select an attempt</h2></div>
+          <dl class="receipt-facts">
+            <div><dt>HTTP</dt><dd id="receipt-http">—</dd></div>
+            <div><dt>cycle / attempt</dt><dd id="receipt-cycle">—</dd></div>
+            <div><dt>correlation</dt><dd id="receipt-correlation">—</dd></div>
+          </dl>
+          <pre id="receipt-json">{}</pre>
+        </article>
+
+        <aside class="recovery-panel">
+          <p class="eyebrow">03 / RECOVERY CONTROL</p>
+          <h2>Dead letter is a state,<br>not a disappearance.</h2>
+          <div class="cycle-map">
+            <div><span>cycle 01</span><strong>422</strong><small>client error · stopped</small></div>
+            <i>→</i>
+            <div class="replayed"><span>cycle 02</span><strong>200</strong><small>explicit replay · delivered</small></div>
+          </div>
+          <ul>
+            <li><b id="dedupe-proof">—</b> duplicate transport calls</li>
+            <li><b id="replay-proof">—</b> replay cycle completed</li>
+            <li><b id="redaction-proof">—</b> secret value persisted</li>
+          </ul>
+          <p class="boundary">Local SQLite evidence · at-least-once attempts · no distributed exactly-once or production SLA claim</p>
+        </aside>
+      </section>
+
+      <section class="contract" aria-label="delivery reliability contract">
+        <header>
+          <div><span>04 / OPERATING CONTRACT</span><h2>The rules that keep failures boring</h2></div>
+          <p>Small, explicit decisions replace optimistic “sent” flags.</p>
+        </header>
+        <div class="contract-grid">
+          <article><b>01</b><span>CLASSIFY</span><h3>Retry transport failures, not every failure.</h3><p>Network errors, 408, 425, 429 and 5xx may retry. Remaining 4xx outcomes stop.</p></article>
+          <article><b>02</b><span>DE-DUPLICATE</span><h3>One action keeps one stable key.</h3><p>A repeated request returns its terminal receipt without another destination call.</p></article>
+          <article><b>03</b><span>RECORD</span><h3>Each attempt leaves a sanitized receipt.</h3><p>Correlation, cycle, response and error evidence survive; configured secrets do not.</p></article>
+          <article><b>04</b><span>RECOVER</span><h3>Replay starts a new delivery cycle.</h3><p>Dead letters can be retried explicitly without overwriting the failed history.</p></article>
+        </div>
+      </section>
+    </main>
+
+    <footer><span>Tenacity retry controller + DeliveryGuard state machine</span><span>Idempotency · receipts · dead letter · replay · redaction</span></footer>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

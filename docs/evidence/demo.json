@@ -1,0 +1,29 @@
+{
+  "after_replay": {
+    "attempt_count": 1,
+    "classification": "success",
+    "cycle": 2,
+    "state": "delivered"
+  },
+  "attempt_classifications": [
+    "server_error",
+    "success",
+    "client_error",
+    "success"
+  ],
+  "dead_letter_before_replay": {
+    "attempt_count": 1,
+    "classification": "client_error",
+    "cycle": 1,
+    "state": "dead_letter"
+  },
+  "duplicate_reused_action": true,
+  "gate": "PASS",
+  "secret_value_persisted": false,
+  "transient_then_success": {
+    "attempt_count": 2,
+    "classification": "success",
+    "cycle": 1,
+    "state": "delivered"
+  }
+}

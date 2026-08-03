@@ -1,0 +1,12 @@
+[
+  {"status": 200, "classification": "success", "retryable": false},
+  {"status": 202, "classification": "success", "retryable": false},
+  {"status": 204, "classification": "success", "retryable": false},
+  {"status": 409, "classification": "already_applied", "retryable": false},
+  {"status": 400, "classification": "client_error", "retryable": false},
+  {"status": 401, "classification": "client_error", "retryable": false},
+  {"status": 422, "classification": "client_error", "retryable": false},
+  {"status": 429, "classification": "rate_limit", "retryable": true},
+  {"status": 500, "classification": "server_error", "retryable": true},
+  {"status": 503, "classification": "server_error", "retryable": true}
+]
