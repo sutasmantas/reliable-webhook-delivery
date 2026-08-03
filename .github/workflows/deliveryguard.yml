@@ -1,0 +1,19 @@
+name: DeliveryGuard
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --group dev
+      - run: uv run ruff check deliveryguard tests/test_deliveryguard.py
+      - run: uv run ruff format --check deliveryguard tests/test_deliveryguard.py
+      - run: uv run mypy deliveryguard
+      - run: uv run pytest tests/test_deliveryguard.py
+      - run: uv build
+      - run: uv run deliveryguard demo --database .demo/delivery.sqlite3
