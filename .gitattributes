@@ -1,0 +1,9 @@
+# The wheel this repository builds is vendored, hash-recorded, and verified by
+# five consumer projects. A working copy whose line endings differ from a fresh
+# checkout produces a different wheel while `git status` still reports clean,
+# which makes "build commit X" non-deterministic and every consumer look
+# drifted for no reason. Pin source to LF so the artifact is stable.
+* text=auto eol=lf
+*.whl binary
+*.png binary
+*.mp4 binary
