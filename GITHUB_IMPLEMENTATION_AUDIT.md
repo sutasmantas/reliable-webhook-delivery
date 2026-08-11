@@ -2,7 +2,7 @@
 
 Date: 2026-08-05
 
-Purpose: reuse maintained queue, workflow, protocol and fault components before writing consequential delivery logic. Licenses are intentionally ignored by portfolio policy; fit, maintenance, defects and glue cost determine adoption.
+Purpose: reuse maintained queue, workflow, protocol and fault components before writing consequential delivery logic. Fit, maintenance, defects and glue cost determine adoption.
 
 ## Current seams
 
