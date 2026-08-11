@@ -94,3 +94,21 @@ DeliveryGuard is complete and public. Update the cross-portfolio checkpoint,
 then start the zero-cost Printline publication slice in its assigned isolated
 worktree. Do not add more DeliveryGuard breadth before a real job exposes a
 missing delivery contract.
+# Technique-dossier checkpoint — 2026-08-05
+
+- Branch: `agent/delivery-guard-technique-dossier`
+- Clean base: `main` at `7f99acd399992c12580714e1cbe35b331552ec3b`
+- Dossier commit: `ffd141b`
+- Systematic evidence gate: `PASS` (all eleven gates in
+  `RESEARCH_DECISION.md`).
+- Experiment/technique-ceiling gate: `PARTIAL`; D0-D4 are designs only.
+- Verification: `python -m ruff check deliveryguard
+  tests/test_deliveryguard.py` and `python -m pytest -q
+  tests/test_deliveryguard.py` -> 20 passed.
+- Remaining limitations: no source outbox atomicity, multi-worker/Postgres
+  claim result, fairness/bloat/scale evidence, adaptive retry result,
+  signatures, receiver-processing guarantee, broker or durable workflow.
+- Exact next action: D0 common deterministic fault/state reconciliation
+  harness, then D1 current control versus Procrastinate/Postgres. Do not begin
+  implementation from this checkpoint unless the central order advances to
+  the experiment phase.

@@ -96,3 +96,52 @@ rejections and configuration errors stop visibly in a replayable dead letter.
   the receiving system stores and honors the same key.
 - Deeper evidence to open if challenged: duplicate/collision tests, attempt
   receipts, and the 409 already-applied vector
+# Systematic technique decisions (2026-08-05)
+
+The original note below remains the implemented local decision. The two notes
+here are research-backed operating rules; their D-series experiments have not
+run.
+
+## Make the business write and delivery request atomic
+
+- **Trigger:** a committed order, lead, payment or record change must always
+  produce a recoverable external notification.
+- **Failure:** writing business state and enqueueing/sending separately creates
+  a crash window where one commits without the other.
+- **Decision:** write a stable outbox event in the same source transaction,
+  then publish asynchronously and reconcile by event identity. Use polling by
+  default; admit Debezium only for a measured freshness or existing-platform
+  advantage.
+- **Delivery control:** inject crashes before/after commit and between publish
+  and acknowledgement; require no committed business row without a discoverable
+  event and no event without committed state.
+- **Boundary:** DeliveryGuard does not yet implement an outbox and cannot create
+  atomicity across a transaction it does not own.
+- **Evidence:** `TECHNIQUE_TAXONOMY.md`, D2 in `BENCHMARK_DESIGN.md`, and the
+  Debezium outbox/delivery documentation.
+- **Proposal-safe insight:** close the dual-write gap at the source transaction,
+  then treat publication as retryable at-least-once work with stable identity
+  and reconciliation.
+- **Central index disposition:** add distinct card **Make the business write
+  and delivery request atomic**.
+
+## Scale delivery by proving claims, recovery, fairness and database health
+
+- **Trigger:** several workers or destinations must drain HTTP work from a
+  shared database.
+- **Failure:** a queue can show good aggregate throughput while losing a claim
+  after a crash, starving one destination, duplicating effects or accumulating
+  dead tuples and index bloat.
+- **Decision:** keep the local sender as control; prototype a maintained
+  Python/Postgres queue before custom leases, then compare exact kill/reclaim,
+  per-destination age and database growth. Try snapshot rotation only if the
+  hot-row path actually fails.
+- **Delivery control:** D1 reconciles every event/effect under 1/4/16 workers,
+  skew, process kills and vacuum measurements.
+- **Boundary:** D1 has not run; no scale or Procrastinate/PgQue claim is made.
+- **Evidence:** D1 in `BENCHMARK_DESIGN.md` and
+  `GITHUB_IMPLEMENTATION_AUDIT.md`.
+- **Proposal-safe insight:** select a queue from its measured failure and
+  operating region, not its “exactly once” label or headline throughput.
+- **Central index disposition:** no new central card until D1 produces a local
+  comparison; the note deepens the existing delivery-failure card.
