@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.31.0"]
 build-backend = "hatchling.build"
 
 [project]
@@ -118,4 +118,3 @@ ignore_missing_imports = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["deliveryguard"]
-

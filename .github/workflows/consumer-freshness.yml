@@ -1,0 +1,50 @@
+name: Consumer freshness
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install the isolated build dependency
+        run: python -m pip install build
+      - name: Clone the five public consumers
+        run: |
+          mkdir consumers
+          git clone --depth 1 https://github.com/sutasmantas/data-pipeline-reconciliation.git consumers/pipeline_forge
+          git clone --depth 1 https://github.com/sutasmantas/api-adapter-conformance-harness.git consumers/adapter_proof
+          git clone --depth 1 https://github.com/sutasmantas/ai-voice-receptionist.git consumers/voice_receptionist
+          git clone --depth 1 https://github.com/sutasmantas/human-gated-support-automation.git consumers/support_automation
+          git clone --depth 1 https://github.com/sutasmantas/ai-lead-intake-automation.git consumers/lead_dock
+      - name: Verify every consumer against a reproducible provider build
+        run: >-
+          python scripts/check_consumer_freshness.py
+          consumers/pipeline_forge
+          consumers/adapter_proof
+          consumers/voice_receptionist
+          consumers/support_automation
+          consumers/lead_dock
+          --verify-reproducible
+      - name: Prove drift is observable
+        shell: bash
+        run: |
+          cp -a consumers/lead_dock consumers/lead_dock-mutant
+          wheel=$(find consumers/lead_dock-mutant/vendor -name 'deliveryguard-*.whl' -print -quit)
+          test -n "$wheel"
+          printf '\nconstruction-known corruption\n' >> "$wheel"
+          set +e
+          python scripts/check_consumer_freshness.py consumers/lead_dock-mutant --json > mutant.json
+          status=$?
+          set -e
+          test "$status" -eq 1
+          python -c "import json; d=json.load(open('mutant.json')); assert d['consumers'][0]['state']=='misrecorded', d"
