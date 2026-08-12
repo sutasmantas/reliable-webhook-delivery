@@ -34,6 +34,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -52,6 +53,21 @@ def sha256_of(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def wheel_content_sha256(path: Path) -> str:
+    """Hash wheel members, independent of ZIP metadata and compression."""
+
+    digest = hashlib.sha256()
+    with zipfile.ZipFile(path) as wheel:
+        for name in sorted(wheel.namelist()):
+            encoded_name = name.encode("utf-8")
+            content = wheel.read(name)
+            digest.update(len(encoded_name).to_bytes(8, "big"))
+            digest.update(encoded_name)
+            digest.update(len(content).to_bytes(8, "big"))
+            digest.update(content)
+    return digest.hexdigest()
+
+
 @dataclass
 class ConsumerReport:
     name: str
@@ -59,6 +75,7 @@ class ConsumerReport:
     state: str = "unknown"
     wheel: str | None = None
     wheel_sha256: str | None = None
+    wheel_content_sha256: str | None = None
     recorded_sha256: str | None = None
     record_format: str | None = None
     declared_pin: str | None = None
@@ -70,6 +87,7 @@ class ConsumerReport:
             "state": self.state,
             "wheel": self.wheel,
             "wheel_sha256": self.wheel_sha256,
+            "wheel_content_sha256": self.wheel_content_sha256,
             "recorded_sha256": self.recorded_sha256,
             "record_format": self.record_format,
             "declared_pin": self.declared_pin,
@@ -77,7 +95,9 @@ class ConsumerReport:
         }
 
 
-def build_provider(root: Path, outdir: Path, *, ref: str = "HEAD", from_worktree: bool = False) -> Path:
+def build_provider(
+    root: Path, outdir: Path, *, ref: str = "HEAD", from_worktree: bool = False
+) -> Path:
     """Build the provider wheel reproducibly and return its path.
 
     The build runs against a pristine ``git archive`` export of ``ref``, not
@@ -109,7 +129,15 @@ def build_provider(root: Path, outdir: Path, *, ref: str = "HEAD", from_worktree
         source = export
 
     subprocess.run(
-        [sys.executable, "-m", "build", "--wheel", "--outdir", str(outdir), str(source)],
+        [
+            sys.executable,
+            "-m",
+            "build",
+            "--wheel",
+            "--outdir",
+            str(outdir),
+            str(source),
+        ],
         check=True,
         capture_output=True,
         env={**_clean_env(), "SOURCE_DATE_EPOCH": SOURCE_DATE_EPOCH},
@@ -150,7 +178,9 @@ def find_recorded_hash(vendor: Path, wheel_name: str) -> tuple[str | None, str |
                 continue
             match = re.search(r"[\"']([0-9a-f]{64})[\"']", text)
             if match:
-                return match.group(1), f"tests/{path.name} (inline literal, not a data file)"
+                return match.group(
+                    1
+                ), f"tests/{path.name} (inline literal, not a data file)"
 
     return None, None
 
@@ -166,12 +196,16 @@ def declared_pin(root: Path) -> str | None:
     return None
 
 
-def check_consumer(root: Path, provider_sha: str, provider_version: str) -> ConsumerReport:
+def check_consumer(
+    root: Path, provider_content_sha: str, provider_version: str
+) -> ConsumerReport:
     report = ConsumerReport(name=root.name, root=root)
     vendor = root / "vendor"
     if not vendor.is_dir():
         report.state = "no-vendor-directory"
-        report.notes.append("no vendor/ directory; consumer may resolve the provider from an index")
+        report.notes.append(
+            "no vendor/ directory; consumer may resolve the provider from an index"
+        )
         return report
 
     wheels = sorted(vendor.glob(WHEEL_GLOB))
@@ -181,14 +215,19 @@ def check_consumer(root: Path, provider_sha: str, provider_version: str) -> Cons
     wheel = wheels[0]
     report.wheel = wheel.name
     report.wheel_sha256 = sha256_of(wheel)
-    report.recorded_sha256, report.record_format = find_recorded_hash(vendor, wheel.name)
+    report.wheel_content_sha256 = wheel_content_sha256(wheel)
+    report.recorded_sha256, report.record_format = find_recorded_hash(
+        vendor, wheel.name
+    )
     report.declared_pin = declared_pin(root)
 
     if report.recorded_sha256 is None:
         report.notes.append("no committed hash found in any known format")
     elif report.recorded_sha256 != report.wheel_sha256:
         report.state = "misrecorded"
-        report.notes.append("the vendored wheel does not match the hash committed beside it")
+        report.notes.append(
+            "the vendored wheel does not match the hash committed beside it"
+        )
         return report
 
     if report.declared_pin and report.declared_pin != provider_version:
@@ -196,7 +235,7 @@ def check_consumer(root: Path, provider_sha: str, provider_version: str) -> Cons
             f"declared pin {report.declared_pin} does not match provider version {provider_version}"
         )
 
-    if report.wheel_sha256 == provider_sha:
+    if report.wheel_content_sha256 == provider_content_sha:
         report.state = "current"
     else:
         report.state = "drifted"
@@ -210,7 +249,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("consumers", nargs="+", help="paths to consumer project roots")
     parser.add_argument("--provider-root", default=str(PROVIDER_ROOT))
-    parser.add_argument("--ref", default="HEAD", help="provider commit to build (default HEAD)")
+    parser.add_argument(
+        "--ref", default="HEAD", help="provider commit to build (default HEAD)"
+    )
     parser.add_argument(
         "--from-worktree",
         action="store_true",
@@ -231,21 +272,29 @@ def main(argv: list[str] | None = None) -> int:
             provider_root, Path(tmp), ref=args.ref, from_worktree=args.from_worktree
         )
         provider_sha = sha256_of(built)
+        provider_content_sha = wheel_content_sha256(built)
         provider_version = built.name.split("-")[1]
 
         if args.verify_reproducible:
             with tempfile.TemporaryDirectory() as second:
                 again = build_provider(
-                    provider_root, Path(second), ref=args.ref, from_worktree=args.from_worktree
+                    provider_root,
+                    Path(second),
+                    ref=args.ref,
+                    from_worktree=args.from_worktree,
                 )
                 if sha256_of(again) != provider_sha:
                     raise SystemExit(
                         "the provider build is not reproducible: two builds of the same "
                         f"source produced {provider_sha} and {sha256_of(again)}"
                     )
+                if wheel_content_sha256(again) != provider_content_sha:
+                    raise SystemExit(
+                        "the provider build produced different wheel contents"
+                    )
 
         reports = [
-            check_consumer(Path(c).resolve(), provider_sha, provider_version)
+            check_consumer(Path(c).resolve(), provider_content_sha, provider_version)
             for c in args.consumers
         ]
 
@@ -253,8 +302,11 @@ def main(argv: list[str] | None = None) -> int:
         "provider_root": str(provider_root),
         "provider_version": provider_version,
         "provider_wheel_sha256": provider_sha,
+        "provider_wheel_content_sha256": provider_content_sha,
         "source_date_epoch": SOURCE_DATE_EPOCH,
-        "built_from": "working tree" if args.from_worktree else f"pristine export of {args.ref}",
+        "built_from": "working tree"
+        if args.from_worktree
+        else f"pristine export of {args.ref}",
         "consumers": [r.as_dict() for r in reports],
     }
 
@@ -264,7 +316,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"provider {provider_version} builds {provider_sha}")
         print(f"{'consumer':<22}{'state':<14}{'pin':<8}record")
         for r in reports:
-            print(f"{r.name:<22}{r.state:<14}{r.declared_pin or '-':<8}{r.record_format or '-'}")
+            print(
+                f"{r.name:<22}{r.state:<14}{r.declared_pin or '-':<8}{r.record_format or '-'}"
+            )
             for note in r.notes:
                 print(f"    ! {note}")
 
