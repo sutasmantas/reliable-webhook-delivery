@@ -1,5 +1,7 @@
 # DeliveryGuard
 
+**Verification:** [claim-to-artifact map and rerun commands](https://sutasmantas.github.io/evidence/#deliveryguard) · [machine-readable receipt](https://sutasmantas.github.io/evidence/receipt.json)
+
 DeliveryGuard makes webhook and tool delivery recoverable and inspectable. It
 turns transport outcomes into durable behavior: stable
 idempotency keys, bounded retries, append-only attempt receipts, dead letters,

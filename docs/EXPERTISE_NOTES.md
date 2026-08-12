@@ -1,5 +1,7 @@
 # Retry only normalized transient outcomes
 
+**Verification:** [claim-to-artifact map and rerun commands](https://sutasmantas.github.io/evidence/#deliveryguard) · [machine-readable receipt](https://sutasmantas.github.io/evidence/receipt.json)
+
 ### Client trigger
 
 - Job wording or deliverable that makes this relevant: reliable API/webhook
