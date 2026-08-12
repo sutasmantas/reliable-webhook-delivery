@@ -112,3 +112,26 @@ missing delivery contract.
   harness, then D1 current control versus Procrastinate/Postgres. Do not begin
   implementation from this checkpoint unless the central order advances to
   the experiment phase.
+
+## Consumer-freshness gate — 2026-08-12
+
+- Public implementation head: `479c386c417e55fbbd54db961db9e405a82a2df2`.
+- Weekly schedule: Monday 06:17 UTC, with a manual-dispatch path.
+- Scope: all five public consumers (`pipeline_forge`, `adapter_proof`,
+  `voice_receptionist`, `support_automation`, and `lead_dock`).
+- Build control: Hatchling is pinned to `1.31.0`; two same-source builds must
+  reproduce within the runner environment.
+- Portability control: provider drift compares canonical unpacked wheel
+  content (`7a15f05f3cf8c164e9e1202dc8c5979b27264066aab08a6b362e63621be4ae0a`),
+  while each consumer's committed raw SHA-256 still detects swapped or
+  corrupted archives.
+- Negative controls: different ZIP order/compression preserves the content
+  digest; a changed member changes it; an appended-byte consumer mutant exits
+  non-zero as `misrecorded`.
+- Verification: 22 focused tests, Ruff lint/format, DeliveryGuard run
+  `31611097033`, and Consumer freshness run `31611139317` all `PASS`.
+- Diagnostic history: initial run `31610589923` correctly exposed that a raw
+  archive digest was environment-sensitive; it remains failed as an audit
+  receipt rather than being erased.
+- Exact next action: no DeliveryGuard implementation is open. Let the weekly
+  schedule detect real consumer drift and continue the central toolbox plan.
