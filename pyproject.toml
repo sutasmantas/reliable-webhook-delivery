@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling==1.31.0"]
+requires = ["hatchling==1.32.4"]
 build-backend = "hatchling.build"
 
 [project]
@@ -9,7 +9,7 @@ description = "Durable, idempotent delivery contracts with bounded retries"
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"
-dependencies = ["tenacity==9.1.4"]
+dependencies = ["tenacity==9.2.1"]
 classifiers = [
     "Intended Audience :: Developers",
     "Programming Language :: Python",
